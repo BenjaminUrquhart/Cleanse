@@ -1,0 +1,20 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+	implementation("com.squareup.okhttp3:okhttp:4.4.0")
+	compile group: 'org.json', name: 'json', version: '20190722'
+    compile group: 'org.nanohttpd', name: 'nanohttpd', version: '2.3.1'
+}
+sourceSets {
+    main.java.srcDirs = ['src/']
+    main.resources.srcDirs = ['src/']
+}
+
+mainClassName='net.benjaminurqhart.cleanse.Cleanse'
