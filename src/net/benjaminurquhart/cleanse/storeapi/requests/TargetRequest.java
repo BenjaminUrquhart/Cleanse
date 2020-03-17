@@ -104,7 +104,7 @@ public class TargetRequest extends Request {
 				item = results.getJSONObject(i);
 				tcin = item.getString("tcin");
 				status.put("title", item.getString("title"));
-				status.put("url", "https://target.com/" + item.getString("url"));
+				status.put("url", "https://target.com" + item.getString("url"));
 				price = item.getJSONObject("price");
 				if(price.getBoolean("is_current_price_range")) {
 					status.put("price", new JSONObject().put("price_min", price.getDouble("current_retail_min"))

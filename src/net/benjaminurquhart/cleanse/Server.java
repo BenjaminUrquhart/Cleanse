@@ -17,7 +17,10 @@ public class Server extends NanoHTTPD {
 	@Override
     public Response serve(IHTTPSession session) {
 		try {
-			return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", TARGET.getToiletPaperStatus("06810").toString());
+			System.out.println("Received request from " + session.getRemoteIpAddress());
+			Response response = NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", TARGET.getToiletPaperStatus("06810").toString());
+			System.out.println("Done");
+			return response;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
