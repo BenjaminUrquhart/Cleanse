@@ -1,19 +1,40 @@
 package net.benjaminurquhart.cleanse.storeapi;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+
 public enum Route {
 	
-	TARGET_NEARBY_STORES("https://redsky.target.com/v3/stores/nearby/%s?within=%d&limit=%d&unit=%s");
-
+	TARGET_NEARBY_STORES("https://redsky.target.com/v3/stores/nearby/%s?within=%s&limit=%s&unit=%s", APIKey.TARGET),
+	TARGET_SEARCH("https://redsky.target.com/v2/plp/search/?pricing_store_id=%s&channel=cleanse_api&count=24&default_purchasability_filter=true&facet_recovery=false&isDLP=false&keyword=%s&offset=0&pageId=none&kwr=y", APIKey.TARGET),
+	TARGET_PRODUCT_INFO("https://redsky.target.com/v3/pdp/tcin/%s?storeId=%s", APIKey.TARGET);
+	
 	private final String path;
 	
 	private Route(String path) {
+		this(path, null);
+	}
+	private Route(String path, APIKey key) {
+		if(key != null) {
+			path+="&key="+key;
+		}
 		this.path = path;
 	}
-	public String getPath() {
-		return path;
+	public String format(Object...objects) {
+		String[] formatted = new String[objects.length];
+		for(int i = 0; i < objects.length; i++) {
+			try {
+				formatted[i] = URLEncoder.encode(String.valueOf(objects[i]), Charset.defaultCharset().displayName());
+			} 
+			catch (UnsupportedEncodingException e) {
+				formatted[i] = String.valueOf(objects[i]);
+			}
+		}
+		return String.format(path, (Object[])formatted);
 	}
 	@Override
 	public String toString() {
-		return this.name()+" ("+path+")";
+		return path;
 	}
 }

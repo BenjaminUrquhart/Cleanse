@@ -5,10 +5,13 @@ plugins {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-	implementation("com.squareup.okhttp3:okhttp:4.4.0")
+	implementation('com.squareup.okhttp3:okhttp:4.4.0')
+	implementation('com.github.KSoft-Si:KSoft4J:development-SNAPSHOT')
+	
 	compile group: 'org.json', name: 'json', version: '20190722'
     compile group: 'org.nanohttpd', name: 'nanohttpd', version: '2.3.1'
 }
