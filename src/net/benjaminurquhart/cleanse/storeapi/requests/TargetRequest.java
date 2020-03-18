@@ -14,7 +14,7 @@ import net.benjaminurquhart.cleanse.storeapi.Route;
 public class TargetRequest extends Request {
 	
 	private Cache<String, List<Integer>> storesIDCache = new Cache<>(-1);
-	private Cache<String, JSONObject> productCache = new Cache<>(300);
+	private Cache<String, JSONObject> productCache = new Cache<>(3600);
 	
 	private JSONObject getProductStatus(String tcin, int storeID) {
 		String key = tcin+" "+storeID;
@@ -48,7 +48,7 @@ public class TargetRequest extends Request {
 						status.put("id", Integer.parseInt(location.getString("location_id")));
 						status.put("name", location.getString("store_name"));
 						status.put("address", location.getString("formatted_store_address"));
-						status.put("phone", location.get("store_main_phone"));
+						status.put("phone", location.optString("store_main_phone"));
 						status.put("on_hand", Math.max(0, location.getInt("onhand_quantity")));
 						status.put("status", location.getString("availability_status"));
 						productCache.set(tcin+" "+location.getString("location_id"), status);
@@ -102,8 +102,8 @@ public class TargetRequest extends Request {
 				status = new JSONObject();
 				availability = new JSONArray();
 				item = results.getJSONObject(i);
-				tcin = item.getString("tcin");
 				status.put("title", item.getString("title"));
+				status.put("tcin", tcin = item.getString("tcin"));
 				status.put("url", "https://target.com" + item.getString("url"));
 				price = item.getJSONObject("price");
 				if(price.getBoolean("is_current_price_range")) {

@@ -1,9 +1,16 @@
 package net.benjaminurquhart.cleanse;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import fi.iki.elonen.NanoHTTPD;
+import net.benjaminurquhart.cleanse.storeapi.Request;
 import net.benjaminurquhart.cleanse.storeapi.requests.TargetRequest;
+import net.explodingbush.ksoftapi.entities.IP;
 
 public class Server extends NanoHTTPD {
 	
@@ -18,7 +25,37 @@ public class Server extends NanoHTTPD {
     public Response serve(IHTTPSession session) {
 		try {
 			System.out.println("Received request from " + session.getRemoteIpAddress());
-			Response response = NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", TARGET.getToiletPaperStatus("06810").toString());
+			Map<String, List<String>> params = session.getParameters();
+			String zip = null;
+			IP ipInfo = null;
+			if(params.containsKey("zip") && !params.get("zip").isEmpty()) {
+				zip = params.get("zip").get(0);
+				if(!zip.matches("\\d{5}")) {
+					return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.BAD_REQUEST, "application/json", new JSONObject().put("error", "Invalid zip code: "+zip).toString());
+				}
+			}
+			else {
+				try {
+					ipInfo = Request.geoIP(session.getRemoteIpAddress());
+					zip = ipInfo.getPostalCode();
+				}
+				catch(Exception e) {
+					e.printStackTrace();
+					return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.BAD_REQUEST, "application/json", new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString());
+				}
+			}
+			JSONArray results = TARGET.getToiletPaperStatus(zip);
+			JSONObject out = new JSONObject();
+			if(ipInfo != null) {
+				out.put("geoip", new JSONObject().put("zip_code", ipInfo.getPostalCode())
+												 .put("city", ipInfo.getCity())
+												 .put("region", ipInfo.getRegion())
+												 .put("latitude", ipInfo.getLatitude())
+												 .put("longitude", ipInfo.getLongitude())
+												 .put("powered_by", "https://api.ksoft.si"));
+			}
+			out.put("results", results);
+			Response response = NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", out.toString());
 			System.out.println("Done");
 			return response;
 		}

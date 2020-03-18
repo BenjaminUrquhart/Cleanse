@@ -39,7 +39,7 @@ public class Cache<K, V> {
 		return null;
 	}
 	public void set(K key, V value) {
-		System.err.println("Cached URL " + key + (expireTimeSeconds < 1 ? "" : " for " + expireTimeSeconds + " seconds"));
+		System.err.println("Cached item " + key + (expireTimeSeconds < 1 ? "" : " for " + expireTimeSeconds + " seconds"));
 		expireTimes.put(key, expireTimeSeconds < 1 ? Long.MAX_VALUE : (System.currentTimeMillis()+expireTimeSeconds*1000));
 		cache.put(key, value);
 	}

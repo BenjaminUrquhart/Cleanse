@@ -12,10 +12,10 @@ import net.explodingbush.ksoftapi.entities.IP;
 
 public abstract class Request {
 	
-	private KSoftAPI ksoft;
-	private Cache<String, IP> locationCache = new Cache<>();
+	private static KSoftAPI ksoft;
+	private static Cache<String, IP> locationCache = new Cache<>(-1);
 	
-	public IP geoIP(String ip) {
+	public static IP geoIP(String ip) {
 		IP ipInfo = locationCache.get(ip);
 		if(ipInfo != null) {
 			return ipInfo;

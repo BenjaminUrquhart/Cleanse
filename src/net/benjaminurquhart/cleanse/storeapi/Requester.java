@@ -12,7 +12,7 @@ import okhttp3.Response;
 public class Requester {
 
 	private static final OkHttpClient CLIENT = new OkHttpClient();
-	private static final Cache<String, String> CACHE = new Cache<>(600);
+	private static final Cache<String, String> CACHE = new Cache<>(3600);
 	
 	public static JSONObject requestJSONObject(String url) throws IOException {
 		return new JSONObject(request(url));
