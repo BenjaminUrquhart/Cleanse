@@ -1,82 +1,75 @@
 package net.benjaminurquhart.cleanse;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.reflections.Reflections;
 
-import fi.iki.elonen.NanoHTTPD;
-import net.benjaminurquhart.cleanse.storeapi.Request;
-import net.benjaminurquhart.cleanse.storeapi.requests.TargetRequest;
-import net.explodingbush.ksoftapi.entities.IP;
+import fi.iki.elonen.router.RouterNanoHTTPD;
+import net.benjaminurquhart.cleanse.handlers.NotFoundHandler;
+import net.benjaminurquhart.cleanse.handlers.Route;
 
-public class Server extends NanoHTTPD {
+public class Server extends RouterNanoHTTPD {
 	
-	private final TargetRequest TARGET = new TargetRequest();
+	private final List<String> routes;
+	private static Server INSTANCE;
+	
+	public static Server getInstance() {
+		if(INSTANCE == null) {
+			try {
+				INSTANCE = new Server(8888);
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+		return INSTANCE;
+	}
 
-	public Server(int port) throws IOException {
+	private Server(int port) throws IOException {
 		super(port);
-		start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+		this.routes = new ArrayList<>();
+		
+		this.addMappings();
+		start(RouterNanoHTTPD.SOCKET_READ_TIMEOUT, false);
 	}
-
+	
+	public List<String> getRoutes() {
+		return routes;
+	}
+	
 	@Override
-    public Response serve(IHTTPSession session) {
-		try {
-			String ip = session.getHeaders().get("x-forwarded-for");
-			if(ip == null) {
-				ip = session.getRemoteIpAddress();
-			}
-			System.out.println("Received request from " + ip);
-			Map<String, List<String>> params = session.getParameters();
-			String zip = null;
-			IP ipInfo = null;
-			if(params.containsKey("zip") && !params.get("zip").isEmpty()) {
-				zip = params.get("zip").get(0);
-				if(!zip.matches("\\d{5}")) {
-					return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.BAD_REQUEST, "application/json", new JSONObject().put("error", "Invalid zip code: "+zip).toString());
-				}
-			}
-			else {
-				try {
-					ipInfo = Request.geoIP(ip);
-					zip = ipInfo.getPostalCode();
-					if(zip == null || zip.isEmpty()) {
-						return NanoHTTPD.newFixedLengthResponse(
-								NanoHTTPD.Response.Status.BAD_REQUEST, 
-								"application/json", 
-								new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
-						);
-					}
-				}
-				catch(Exception e) {
-					e.printStackTrace();
-					return NanoHTTPD.newFixedLengthResponse(
-							NanoHTTPD.Response.Status.BAD_REQUEST, 
-							"application/json", 
-							new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
-					);
-				}
-			}
-			JSONArray results = TARGET.getToiletPaperStatus(zip, params.containsKey("expand") && params.get("expand").contains("true"));
-			JSONObject out = new JSONObject();
-			if(ipInfo != null) {
-				out.put("geoip", new JSONObject().put("zip_code", ipInfo.getPostalCode())
-												 .put("city", ipInfo.getCity())
-												 .put("region", ipInfo.getRegion())
-												 .put("latitude", ipInfo.getLatitude())
-												 .put("longitude", ipInfo.getLongitude())
-												 .put("powered_by", "https://api.ksoft.si"));
-			}
-			out.put("results", results);
-			Response response = NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", out.toString());
-			System.out.println("Done");
-			return response;
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-			return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, "text/html", e.toString());
-		}
-	}
+    public void addMappings() {
+		this.setNotFoundHandler(NotFoundHandler.class);
+        try {
+        	Route route;
+        	int loaded = 0, ignored = 0, failed = 0;
+        	Reflections reflections = new Reflections("net.benjaminurquhart.cleanse.handlers");
+        	for(Class<?> clazz : reflections.getSubTypesOf(DefaultHandler.class)) {
+        		if((route = clazz.getAnnotation(Route.class)) != null) {
+        			try {
+        				this.addRoute(route.value(), clazz);
+        				routes.add(route.value());
+        				loaded++;
+        				System.err.println("Added handler"+clazz.getName()+" for route "+route.value());
+        			}
+        			catch(Exception e) {
+        				failed++;
+        				System.err.println("Failed to add handler"+clazz.getName()+" for route "+route.value()+": "+e);
+        			}
+        		}
+        		else {
+        			ignored++;
+        			System.err.println("Handler "+clazz.getName()+" is missing the @Route annotation. Ignoring...");
+        		}
+        	}
+        	System.err.printf("\nLoaded: %d\nFailed: %d\nIgnored: %d\n-Total-: %d\n", loaded, failed, ignored, loaded+failed+ignored);
+        }
+        catch(Exception e) {
+        	e.printStackTrace();
+        	System.exit(1);
+        }
+    }
 }
