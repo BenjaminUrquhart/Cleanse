@@ -27,7 +27,11 @@ public abstract class Request {
 			}
 			if(ksoft == null) {
 				try {
-					ksoft = new KSoftAPI(new JSONObject(Files.lines(new File("api_keys.json").toPath()).collect(Collectors.joining())).getString("ksoft"));
+					String token = System.getenv("ksoft");
+					if(token == null) {
+						token = new JSONObject(Files.lines(new File("api_keys.json").toPath()).collect(Collectors.joining())).getString("ksoft");
+					}
+					ksoft = new KSoftAPI(token);
 				}
 				catch(Exception e) {
 					e.printStackTrace();
@@ -45,7 +49,18 @@ public abstract class Request {
 		}
 		return null;
 	}
-
-	public abstract JSONArray getToiletPaperStatus(String zip);
-	public abstract JSONArray getHandSanitizerStatus(String zip);
+	
+	public JSONArray getToiletPaperStatus(String zip) {
+		return this.getToiletPaperStatus(zip, false);
+	}
+	public JSONArray getHandSanitizerStatus(String zip) {
+		return this.getHandSanitizerStatus(zip, false);
+	}
+	public JSONArray getToiletPaperStatus(String zip, boolean expand) {
+		return this.getStatus(zip, "toilet+paper", expand);
+	}
+	public JSONArray getHandSanitizerStatus(String zip, boolean expand) {
+		return this.getStatus(zip, "hand+sanitizer", expand);
+	}
+	public abstract JSONArray getStatus(String zip, String product, boolean expand);
 }

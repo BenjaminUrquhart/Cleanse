@@ -24,7 +24,11 @@ public class Server extends NanoHTTPD {
 	@Override
     public Response serve(IHTTPSession session) {
 		try {
-			System.out.println("Received request from " + session.getRemoteIpAddress());
+			String ip = session.getHeaders().get("x-forwarded-for");
+			if(ip == null) {
+				ip = session.getRemoteIpAddress();
+			}
+			System.out.println("Received request from " + ip);
 			Map<String, List<String>> params = session.getParameters();
 			String zip = null;
 			IP ipInfo = null;
@@ -36,15 +40,26 @@ public class Server extends NanoHTTPD {
 			}
 			else {
 				try {
-					ipInfo = Request.geoIP(session.getRemoteIpAddress());
+					ipInfo = Request.geoIP(ip);
 					zip = ipInfo.getPostalCode();
+					if(zip == null || zip.isEmpty()) {
+						return NanoHTTPD.newFixedLengthResponse(
+								NanoHTTPD.Response.Status.BAD_REQUEST, 
+								"application/json", 
+								new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
+						);
+					}
 				}
 				catch(Exception e) {
 					e.printStackTrace();
-					return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.BAD_REQUEST, "application/json", new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString());
+					return NanoHTTPD.newFixedLengthResponse(
+							NanoHTTPD.Response.Status.BAD_REQUEST, 
+							"application/json", 
+							new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
+					);
 				}
 			}
-			JSONArray results = TARGET.getToiletPaperStatus(zip);
+			JSONArray results = TARGET.getToiletPaperStatus(zip, params.containsKey("expand") && params.get("expand").contains("true"));
 			JSONObject out = new JSONObject();
 			if(ipInfo != null) {
 				out.put("geoip", new JSONObject().put("zip_code", ipInfo.getPostalCode())

@@ -1,7 +1,10 @@
 package net.benjaminurquhart.cleanse.storeapi.requests;
 
+import java.util.WeakHashMap;
+import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,13 +19,16 @@ public class TargetRequest extends Request {
 	private Cache<String, List<Integer>> storesIDCache = new Cache<>(-1);
 	private Cache<String, JSONObject> productCache = new Cache<>(3600);
 	
+	private Map<String, Object> locks = new WeakHashMap<>();
+	
 	private JSONObject getProductStatus(String tcin, int storeID) {
 		String key = tcin+" "+storeID;
 		JSONObject status = productCache.get(key);
 		if(status != null) {
 			return status;
 		}
-		synchronized(productCache) {
+		Object lock = locks.computeIfAbsent(key, k -> new Object());
+		synchronized(lock) {
 			status = productCache.get(key);
 			if(status != null) {
 				return status;
@@ -67,7 +73,8 @@ public class TargetRequest extends Request {
 		if(stores != null) {
 			return stores;
 		}
-		synchronized(storesIDCache) {
+		Object lock = locks.computeIfAbsent(zip, z -> new Object());
+		synchronized(lock) {
 			stores = storesIDCache.get(zip);
 			if(stores != null) {
 				return stores;
@@ -88,15 +95,22 @@ public class TargetRequest extends Request {
 		}
 		return null;
 	}
-	private JSONArray getStatus(String zip, String product) {
+	@Override
+	public JSONArray getStatus(String zip, String product, boolean expand) {
 		try {
 			List<Integer> nearby = this.getNearbyStoreIDsByZip(zip);
-			JSONArray results = Requester.requestJSONObject(Route.TARGET_SEARCH.format(nearby.get(0), product))
-										 .getJSONObject("search_response")
-										 .getJSONObject("items")
-										 .getJSONArray("Item");
-			JSONObject status, item, price, tmp;
-			JSONArray statuses = new JSONArray(), availability;
+			JSONArray results = Requester.requestJSONObject(
+					Route.TARGET_SEARCH.format(
+							nearby.get(0), 
+							nearby.stream().map(String::valueOf).collect(Collectors.joining(",")), 
+							product, 
+							"/s/"+product)
+					)
+					.getJSONObject("search_response")
+					.getJSONObject("items")
+					.getJSONArray("Item");
+			JSONObject status, item, price, tmp, store;
+			JSONArray statuses = new JSONArray(), availability, tmp2;
 			String tcin;
 			for(int i = 0, size = results.length(); i < size; i++) {
 				status = new JSONObject();
@@ -116,10 +130,36 @@ public class TargetRequest extends Request {
 														.put("price_max", price.getDouble("current_retail"))
 														.put("formatted", price.getString("formatted_current_price")));
 				}
-				for(int id : nearby) {
-					tmp = this.getProductStatus(tcin, id);
-					if(tmp != null) {
-						availability.put(tmp);
+				if(expand) {
+					for(int id : nearby) {
+						tmp = this.getProductStatus(tcin, id);
+						if(tmp != null && !tmp.getString("status").equals("NOT_SOLD_IN_STORE")) {
+							availability.put(tmp);
+						}
+					}
+				}
+				else {
+					try {
+						tmp2 = Requester.requestJSONObject(Route.TARGET_AGGREGATE.format(tcin, zip, 20, 20)).getJSONArray("products").getJSONObject(0).getJSONArray("locations");
+						for(int j = 0, length = tmp2.length(); j < length; j++) {
+							store = new JSONObject();
+							tmp = tmp2.getJSONObject(j);
+							if(tmp.getJSONObject("in_store_only").getString("availability_status").equals("NOT_SOLD_IN_STORE")) {
+								continue;
+							}
+							store.put("id", Integer.parseInt(tmp.getString("location_id")));
+							store.put("name", tmp.getString("store_name"));
+							store.put("address", tmp.getString("store_address"));
+							store.put("on_hand", Math.max(0, tmp.getInt("location_available_to_promise_quantity")));
+							store.put("status", tmp.getJSONObject("in_store_only").getString("availability_status"));
+							availability.put(store);
+						}
+					}
+					catch(Exception e) {
+						tmp = this.getProductStatus(tcin, nearby.get(0));
+						if(tmp != null && !tmp.getString("status").equals("NOT_SOLD_IN_STORE")) {
+							availability.put(tmp);
+						}
 					}
 				}
 				status.put("availability", availability);
@@ -132,14 +172,4 @@ public class TargetRequest extends Request {
 		}
 		return null;
 	}
-	@Override
-	public JSONArray getToiletPaperStatus(String zip) {
-		return this.getStatus(zip, "toilet+paper");
-	}
-
-	@Override
-	public JSONArray getHandSanitizerStatus(String zip) {
-		return this.getStatus(zip, "hand+sanitizer");
-	}
-
 }

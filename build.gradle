@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id "com.github.johnrengelman.shadow" version "5.2.0"
 }
 
 repositories {
@@ -19,5 +20,7 @@ sourceSets {
     main.java.srcDirs = ['src/']
     main.resources.srcDirs = ['src/']
 }
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
-mainClassName='net.benjaminurqhart.cleanse.Cleanse'
+mainClassName='net.benjaminurquhart.cleanse.Cleanse'
