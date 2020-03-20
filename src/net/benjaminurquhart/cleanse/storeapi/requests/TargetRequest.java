@@ -121,14 +121,14 @@ public class TargetRequest extends Request {
 				status.put("url", "https://target.com" + item.getString("url"));
 				price = item.getJSONObject("price");
 				if(price.getBoolean("is_current_price_range")) {
-					status.put("price", new JSONObject().put("price_min", price.getDouble("current_retail_min"))
-														.put("price_max", price.getDouble("current_retail_max"))
-														.put("formatted", price.getString("formatted_current_price")));
+					status.put("price", new JSONObject().put("price_min", price.optDouble("current_retail_min", -1))
+														.put("price_max", price.optDouble("current_retail_max", -1))
+														.put("formatted", price.optString("formatted_current_price", "N/A")));
 				}
 				else {
-					status.put("price", new JSONObject().put("price_min", price.getDouble("current_retail"))
-														.put("price_max", price.getDouble("current_retail"))
-														.put("formatted", price.getString("formatted_current_price")));
+					status.put("price", new JSONObject().put("price_min", price.optDouble("current_retail", -1))
+														.put("price_max", price.optDouble("current_retail", -1))
+														.put("formatted", price.optString("formatted_current_price", "N/A")));
 				}
 				if(expand) {
 					for(int id : nearby) {
