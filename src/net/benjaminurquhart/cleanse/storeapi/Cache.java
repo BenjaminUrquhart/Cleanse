@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import net.benjaminurquhart.cleanse.Cleanse;
+
 public class Cache<K, V> {
 	
 	public static final int DEFAULT_CACHE_EXPIRE_SECONDS = 60;
@@ -24,23 +26,28 @@ public class Cache<K, V> {
 	public V get(K key) {
 		if(cache.containsKey(key)) {
 			if(expireTimes.get(key) >= System.currentTimeMillis()) {
-				System.err.println("Cache status for " + key + " -> hit");
+				Cleanse.debug("Cache status for " + key + " -> hit");
 				return cache.get(key);
 			}
 			else {
-				System.err.println("Cache status for " + key + " -> expired");
+				Cleanse.debug("Cache status for " + key + " -> expired");
 			}
 		}
 		else {
-			System.err.println("Cache status for " + key + " -> miss");
+			Cleanse.debug("Cache status for " + key + " -> miss");
 		}
 		expireTimes.remove(key);
 		cache.remove(key);
 		return null;
 	}
 	public void set(K key, V value) {
-		System.err.println("Cached item " + key + (expireTimeSeconds < 1 ? "" : " for " + expireTimeSeconds + " seconds"));
-		expireTimes.put(key, expireTimeSeconds < 1 ? Long.MAX_VALUE : (System.currentTimeMillis()+expireTimeSeconds*1000));
+		Cleanse.debug("Cached item " + key + (expireTimeSeconds < 1 ? "" : " for " + expireTimeSeconds + " seconds"));
+		if(expireTimeSeconds < 0) {
+			expireTimes.put(key, Long.MAX_VALUE);
+		}
+		else {
+			expireTimes.put(key, System.currentTimeMillis()+expireTimeSeconds*1000);
+		}
 		cache.put(key, value);
 	}
 }

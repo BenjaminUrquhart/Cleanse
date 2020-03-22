@@ -1,8 +1,9 @@
 package net.benjaminurquhart.cleanse;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.reflections.Reflections;
 
@@ -12,7 +13,7 @@ import net.benjaminurquhart.cleanse.handlers.Route;
 
 public class Server extends RouterNanoHTTPD {
 	
-	private final List<String> routes;
+	private final Map<String, Class<? extends DefaultHandler>> handlers;
 	private static Server INSTANCE;
 	
 	public static Server getInstance() {
@@ -31,14 +32,14 @@ public class Server extends RouterNanoHTTPD {
 
 	private Server(int port) throws IOException {
 		super(port);
-		this.routes = new ArrayList<>();
+		this.handlers = new HashMap<>();
 		
 		this.addMappings();
 		start(RouterNanoHTTPD.SOCKET_READ_TIMEOUT, false);
 	}
 	
-	public List<String> getRoutes() {
-		return routes;
+	public Map<String, Class<? extends DefaultHandler>> getEndpoints() {
+		return Collections.unmodifiableMap(handlers);
 	}
 	
 	@Override
@@ -48,17 +49,17 @@ public class Server extends RouterNanoHTTPD {
         	Route route;
         	int loaded = 0, ignored = 0, failed = 0;
         	Reflections reflections = new Reflections("net.benjaminurquhart.cleanse.handlers");
-        	for(Class<?> clazz : reflections.getSubTypesOf(DefaultHandler.class)) {
+        	for(Class<? extends DefaultHandler> clazz : reflections.getSubTypesOf(DefaultHandler.class)) {
         		if((route = clazz.getAnnotation(Route.class)) != null) {
         			try {
         				this.addRoute(route.value(), clazz);
-        				routes.add(route.value());
+        				handlers.put(route.value(), clazz);
         				loaded++;
-        				System.err.println("Added handler"+clazz.getName()+" for route "+route.value());
+        				System.err.println("Added handler "+clazz.getName()+" for route "+route.value());
         			}
         			catch(Exception e) {
         				failed++;
-        				System.err.println("Failed to add handler"+clazz.getName()+" for route "+route.value()+": "+e);
+        				System.err.println("Failed to add handler" +clazz.getName()+" for route "+route.value()+": "+e);
         			}
         		}
         		else {

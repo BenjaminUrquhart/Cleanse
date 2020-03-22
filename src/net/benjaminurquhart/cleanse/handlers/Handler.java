@@ -29,15 +29,22 @@ public abstract class Handler extends GeneralHandler {
 		this.requireZip = requireZip;
 		this.REQUEST = request;
 	}
+	
+	public static boolean isPrivateIP(String ip) {
+		return ip.equals("127.0.0.1") || ip.startsWith("192.168.") || ip.startsWith("172.16.") || ip.startsWith("10.");
+	}
 
 	@Override
     public Response get(UriResource uriResource, Map<String, String> urlParams, IHTTPSession session) {
 		try {
-			String ip = session.getHeaders().get("x-forwarded-for");
-			if(ip == null) {
-				ip = session.getRemoteIpAddress();
+			String ip = session.getRemoteIpAddress();
+			if(isPrivateIP(ip)) {
+				String tmp = session.getHeaders().get("x-forwarded-for");
+				if(tmp != null) {
+					ip = tmp;
+				}
 			}
-			System.out.println("Received request from " + ip);
+			System.out.println("Received request from " + ip + ": " + uriResource);
 			Map<String, List<String>> params = session.getParameters();
 			String zip = null;
 			IP ipInfo = null;
@@ -102,9 +109,13 @@ public abstract class Handler extends GeneralHandler {
 			System.out.println("Done");
 			return response;
 		}
-		catch(Exception e) {
+		catch(Throwable e) {
 			e.printStackTrace();
-			return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, "text/html", e.toString());
+			return NanoHTTPD.newFixedLengthResponse(
+					NanoHTTPD.Response.Status.INTERNAL_ERROR, 
+					"application/json", 
+					new JSONObject().put("error", e.toString()).toString()
+			);
 		}
 	}
 }
