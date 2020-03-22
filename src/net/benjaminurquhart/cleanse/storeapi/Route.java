@@ -12,7 +12,8 @@ public enum Route {
 	TARGET_AGGREGATE("https://api.target.com/fulfillment_aggregator/v1/fiats/%s?nearby=%s&radius=%s&limit=%s&requested_quantity=1", APIKey.TARGET),
 	
 	COSTCO_SEARCH("https://www.costco.com/CatalogSearch?dept=All&keyword=%s"),
-	COSTCO_PRODUCT_INFO("https://www.costco.com/AjaxGetContractPrice?productId=%s&WH=%s");
+	COSTCO_PRODUCT_INFO("https://www.costco.com/AjaxGetContractPrice?productId=%s&WH=%s"),
+	COSTCO_GEOIP("https://dev.virtualearth.net/REST/v1/Locations?postalCode=%s&maxResults=1", APIKey.VIRTUAL_EARTH);
 	
 	private final String path;
 	

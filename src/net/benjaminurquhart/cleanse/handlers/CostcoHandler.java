@@ -8,6 +8,6 @@ public class CostcoHandler extends Handler {
 	private static final CostcoRequest COSTCO = new CostcoRequest();
 
 	public CostcoHandler() {
-		super(COSTCO);
+		super(COSTCO, false);
 	}
 }

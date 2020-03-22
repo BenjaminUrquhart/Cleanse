@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import net.explodingbush.ksoftapi.KSoftAPI;
@@ -43,6 +44,7 @@ public abstract class Request {
 				locationCache.set(ip, ipInfo);
 				return ipInfo;
 			}
+			catch(JSONException e) {}
 			catch(Exception e) {
 				e.printStackTrace();
 			}

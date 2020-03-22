@@ -10,6 +10,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import net.benjaminurquhart.cleanse.storeapi.Cache;
+import net.benjaminurquhart.cleanse.storeapi.InvalidZipException;
 import net.benjaminurquhart.cleanse.storeapi.Request;
 import net.benjaminurquhart.cleanse.storeapi.Requester;
 import net.benjaminurquhart.cleanse.storeapi.Route;
@@ -81,6 +82,9 @@ public class TargetRequest extends Request {
 			}
 			try {
 				JSONObject result = Requester.requestJSONArray(Route.TARGET_NEARBY_STORES.format(zip, 20, 20, "mile")).getJSONObject(0);
+				if(!result.has("locations")) {
+					throw new InvalidZipException(zip);
+				}
 				JSONArray locations = result.getJSONArray("locations");
 				stores = new ArrayList<>();
 				for(int i = 0, size = locations.length(); i < size; i++) {
@@ -88,6 +92,9 @@ public class TargetRequest extends Request {
 				}
 				storesIDCache.set(zip, stores);
 				return stores;
+			}
+			catch(InvalidZipException e) {
+				throw e;
 			}
 			catch(Exception e) {
 				e.printStackTrace();
@@ -98,7 +105,13 @@ public class TargetRequest extends Request {
 	@Override
 	public JSONArray getStatus(String zip, String product, boolean expand) {
 		try {
-			List<Integer> nearby = this.getNearbyStoreIDsByZip(zip);
+			List<Integer> nearby = null;
+			try {
+				nearby = this.getNearbyStoreIDsByZip(zip);
+			}
+			catch(InvalidZipException e) {
+				return new JSONArray().put(new JSONObject().put("error", "Unknown zip code: "+zip));
+			}
 			JSONArray results = Requester.requestJSONObject(
 					Route.TARGET_SEARCH.format(
 							nearby.get(0), 

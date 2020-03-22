@@ -17,11 +17,16 @@ import net.explodingbush.ksoftapi.entities.IP;
 public abstract class Handler extends GeneralHandler {
 	
 	private final Request REQUEST;
+	private final boolean requireZip;
 	
 	public Handler(Request request) {
+		this(request, true);
+	}
+	public Handler(Request request, boolean requireZip) {
 		if(request == null) {
 			throw new IllegalArgumentException("null");
 		}
+		this.requireZip = requireZip;
 		this.REQUEST = request;
 	}
 
@@ -39,14 +44,20 @@ public abstract class Handler extends GeneralHandler {
 			if(params.containsKey("zip") && !params.get("zip").isEmpty()) {
 				zip = params.get("zip").get(0);
 				if(!zip.matches("\\d{5}")) {
-					return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.BAD_REQUEST, "application/json", new JSONObject().put("error", "Invalid zip code: "+zip).toString());
+					return NanoHTTPD.newFixedLengthResponse(
+							NanoHTTPD.Response.Status.BAD_REQUEST, 
+							"application/json", 
+							new JSONObject().put("error", "Invalid zip code: "+zip).toString()
+					);
 				}
 			}
 			else {
 				try {
 					ipInfo = Request.geoIP(ip);
-					zip = ipInfo.getPostalCode();
-					if(zip == null || zip.isEmpty()) {
+					if(ipInfo != null) {
+						zip = ipInfo.getPostalCode();
+					}
+					if(requireZip && (zip == null || zip.isEmpty())) {
 						return NanoHTTPD.newFixedLengthResponse(
 								NanoHTTPD.Response.Status.BAD_REQUEST, 
 								"application/json", 
@@ -56,11 +67,13 @@ public abstract class Handler extends GeneralHandler {
 				}
 				catch(Exception e) {
 					e.printStackTrace();
-					return NanoHTTPD.newFixedLengthResponse(
-							NanoHTTPD.Response.Status.BAD_REQUEST, 
-							"application/json", 
-							new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
-					);
+					if(requireZip) {
+						return NanoHTTPD.newFixedLengthResponse(
+								NanoHTTPD.Response.Status.BAD_REQUEST, 
+								"application/json", 
+								new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
+						);
+					}
 				}
 			}
 			String query = params.containsKey("q") ? String.join("+", params.get("q")) : "toilet+paper";
@@ -74,7 +87,17 @@ public abstract class Handler extends GeneralHandler {
 												 .put("longitude", ipInfo.getLongitude())
 												 .put("powered_by", "https://api.ksoft.si"));
 			}
-			out.put("results", results);
+			if(results == null) {
+				out.put("error", "Internal Server Error");
+				return NanoHTTPD.newFixedLengthResponse(
+						NanoHTTPD.Response.Status.INTERNAL_ERROR, 
+						"application/json", 
+						out.toString()
+				);
+			}
+			else {
+				out.put("results", results);
+			}
 			Response response = NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", out.toString());
 			System.out.println("Done");
 			return response;

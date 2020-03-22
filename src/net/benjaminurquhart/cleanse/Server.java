@@ -18,7 +18,8 @@ public class Server extends RouterNanoHTTPD {
 	public static Server getInstance() {
 		if(INSTANCE == null) {
 			try {
-				INSTANCE = new Server(8888);
+				String port = System.getenv("port");
+				INSTANCE = new Server(port == null ? 8888 : Integer.parseInt(port));
 			}
 			catch(Exception e) {
 				e.printStackTrace();
