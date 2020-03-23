@@ -73,13 +73,15 @@ public class MainPageHandler extends GeneralHandler {
 																	  .withName(param.toString())
 																	  .withId(param.name())
 																	  .withCondRequired(true)
+																	  .attr("#"+param)
 												  ),
 												  input().withType("hidden").withId("endpoint").withName("endpoint").withValue(endpoint),
 												  button("Submit").withType("submit")
 											)
 										)
 								);
-							})
+							}),
+							script().withSrc("/geoip.js")
 						)
 					).render()
 			);
