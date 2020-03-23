@@ -108,6 +108,9 @@ public class TargetRequest extends Request {
 			List<Integer> nearby = null;
 			try {
 				nearby = this.getNearbyStoreIDsByZip(zip);
+				if(nearby == null || nearby.isEmpty()) {
+					return new JSONArray().put(new JSONObject().put("error", "No stores found for that zipcode"));
+				}
 			}
 			catch(InvalidZipException e) {
 				return new JSONArray().put(new JSONObject().put("error", "Unknown zip code: "+zip));

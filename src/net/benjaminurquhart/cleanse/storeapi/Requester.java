@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import net.benjaminurquhart.cleanse.Cleanse;
 import okhttp3.ConnectionPool;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -106,7 +107,7 @@ public class Requester {
 				result = response.body().string();
 				if(response.code() >= 300) {
 					System.err.println("[WARN] Got status code " + response.code() + " from url " + url);
-					System.err.println("[WARN] Data: " + result);
+					//System.err.println("[WARN] Data: " + result);
 				}
 				else {
 					CACHE.set(url, result);
@@ -119,7 +120,7 @@ public class Requester {
 					String[] args = Arrays.copyOf(CURL_ARGS, CURL_ARGS.length);
 					args[1] = url;
 					args[5]+=host;
-					System.err.println(Arrays.stream(args).map(s -> s.contains(" ") || s.contains("&") ? '"'+s+'"' : s).collect(Collectors.joining(" ")));
+					Cleanse.debug(Arrays.stream(args).map(s -> s.contains(" ") || s.contains("&") ? '"'+s+'"' : s).collect(Collectors.joining(" ")));
 					Process process = new ProcessBuilder(args)
 					.redirectErrorStream(true)
 					.start();
@@ -129,7 +130,7 @@ public class Requester {
 					if(!result.contains("<H1>Access Denied</H1>")) {
 						CACHE.set(url, result);
 					}
-					System.err.println(process.waitFor());
+					Cleanse.debug(process.waitFor());
 					reader.close();
 				}
 				catch(Exception exec) {

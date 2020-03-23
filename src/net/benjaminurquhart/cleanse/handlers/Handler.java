@@ -127,9 +127,7 @@ public abstract class Handler extends GeneralHandler {
 			else {
 				out.put("results", results);
 			}
-			Response response = NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", out.toString());
-			System.out.println("Done");
-			return response;
+			return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", out.toString());
 		}
 		catch(Throwable e) {
 			e.printStackTrace();

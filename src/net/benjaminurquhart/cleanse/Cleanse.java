@@ -12,7 +12,7 @@ public class Cleanse {
 			DEBUG = Boolean.parseBoolean(pref);
 		}
 		else {
-			DEBUG = true;
+			DEBUG = false;
 		}
 	}
 
@@ -21,6 +21,7 @@ public class Cleanse {
 		for(String endpoint : server.getEndpoints().keySet()) {
 			Requester.request("http://localhost:"+server.getPort()+endpoint);
 		}
+		System.out.println("Ready");
 	}
 	
 	public static void debug(Object obj) {

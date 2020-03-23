@@ -61,7 +61,7 @@ public class Server extends RouterNanoHTTPD {
         				this.addRoute(route.value(), clazz);
         				handlers.put(route.value(), clazz);
         				loaded++;
-        				System.err.println("Added handler "+clazz.getName()+" for route "+route.value());
+        				System.out.println("Added handler "+clazz.getName()+" for route "+route.value());
         			}
         			catch(Exception e) {
         				failed++;
@@ -70,10 +70,10 @@ public class Server extends RouterNanoHTTPD {
         		}
         		else {
         			ignored++;
-        			System.err.println("Handler "+clazz.getName()+" is missing the @Route annotation. Ignoring...");
+        			Cleanse.debug("Handler "+clazz.getName()+" is missing the @Route annotation. Ignoring...");
         		}
         	}
-        	System.err.printf("\nLoaded: %d\nFailed: %d\nIgnored: %d\n-Total-: %d\n", loaded, failed, ignored, loaded+failed+ignored);
+        	System.out.printf("\nLoaded: %d\nFailed: %d\nIgnored: %d\n-Total-: %d\n", loaded, failed, ignored, loaded+failed+ignored);
         }
         catch(Exception e) {
         	e.printStackTrace();

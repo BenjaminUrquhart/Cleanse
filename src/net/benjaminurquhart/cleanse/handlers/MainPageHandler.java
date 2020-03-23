@@ -92,6 +92,14 @@ public class MainPageHandler extends GeneralHandler {
 	@Override
     public Response post(UriResource uriResource, Map<String, String> urlParams, IHTTPSession session) {
 		try {
+			String ip = session.getRemoteIpAddress();
+			if(Handler.isPrivateIP(ip)) {
+				String tmp = session.getHeaders().get("x-forwarded-for");
+				if(tmp != null) {
+					ip = tmp;
+				}
+			}
+			System.out.println("Received request from " + ip + ": " + uriResource);
 			session.parseBody(null);
 			Map<String, List<String>> params = session.getParameters();
 			if(!params.containsKey("endpoint")) {
@@ -138,6 +146,22 @@ public class MainPageHandler extends GeneralHandler {
 			if(results == null) {
 				throw new RuntimeException("An unknown internal error occured");
 			}
+			if(results.length() == 1 && results.getJSONObject(0).has("error")) {
+				return NanoHTTPD.newFixedLengthResponse(
+						NanoHTTPD.Response.Status.BAD_REQUEST,
+						"text/html",
+						html(
+							head(
+								title(join("Results for ", q, " | Cleanse API")),
+								link().withRel("stylesheet").withHref("https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/dark.min.css")
+							),
+							body(
+								h1("No stores found for the zipcode " + Entities.escape(zip)),
+								form().withMethod("GET").with(button().withType("submit").with(p("Go Back")))
+							)
+						).render()
+				);
+			}
 			return NanoHTTPD.newFixedLengthResponse(
 					NanoHTTPD.Response.Status.OK,
 					"text/html",
@@ -147,7 +171,7 @@ public class MainPageHandler extends GeneralHandler {
 							link().withRel("stylesheet").withHref("https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/dark.min.css")
 						),
 						body(
-							h2("Results for " + Entities.escape(q)),
+							h2(join(String.valueOf(results.length()), "results for", Entities.escape(q))),
 							table(
 								tbody(
 									each(results.toList(), obj -> {
