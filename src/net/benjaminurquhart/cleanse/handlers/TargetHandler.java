@@ -2,7 +2,7 @@ package net.benjaminurquhart.cleanse.handlers;
 
 import net.benjaminurquhart.cleanse.storeapi.requests.TargetRequest;
 
-@Route("/target")
+@Route("/api/target")
 @Parameters({Parameter.QUERY, Parameter.EXPAND, Parameter.ZIP})
 public class TargetHandler extends Handler {
 	

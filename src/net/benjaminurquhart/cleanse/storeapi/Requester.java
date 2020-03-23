@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -52,6 +53,7 @@ public class Requester {
 	};
 	
 	private static OkHttpClient CLIENT;
+	private static Map<String, Object> locks = new WeakHashMap<>();
 	private static Set<String> HOSTS_THAT_NEED_CURL = new HashSet<>();
 	
 	static {
@@ -83,7 +85,8 @@ public class Requester {
 		if(result != null) {
 			return result;
 		}
-		synchronized(CACHE) {
+		Object lock = locks.computeIfAbsent(url, k -> new Object());
+		synchronized(lock) {
 			result = CACHE.get(url);
 			if(result != null) {
 				return result;

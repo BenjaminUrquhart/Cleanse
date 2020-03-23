@@ -1,5 +1,6 @@
 package net.benjaminurquhart.cleanse.handlers;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,8 @@ import net.explodingbush.ksoftapi.entities.IP;
 
 public abstract class Handler extends GeneralHandler {
 	
+	private static final Map<String, Handler> handlers = new HashMap<>();
+	
 	private final Request REQUEST;
 	private final boolean requireZip;
 	
@@ -28,12 +31,26 @@ public abstract class Handler extends GeneralHandler {
 		}
 		this.requireZip = requireZip;
 		this.REQUEST = request;
+		
+		Route route = this.getClass().getAnnotation(Route.class);
+		if(route != null) {
+			handlers.put(route.value(), this);
+		}
 	}
-	
+	public static Handler getHandlerFor(Route route) {
+		return getHandlerFor(route.value());
+	}
+	public static Handler getHandlerFor(String route) {
+		return handlers.get(route);
+	}
 	public static boolean isPrivateIP(String ip) {
 		return ip.equals("127.0.0.1") || ip.startsWith("192.168.") || ip.startsWith("172.16.") || ip.startsWith("10.");
 	}
 
+	public Request getRequest() {
+		return REQUEST;
+	}
+	
 	@Override
     public Response get(UriResource uriResource, Map<String, String> urlParams, IHTTPSession session) {
 		try {
@@ -58,13 +75,20 @@ public abstract class Handler extends GeneralHandler {
 					);
 				}
 			}
-			else {
+			else if(requireZip) {
+				if(isPrivateIP(ip)) {
+					return NanoHTTPD.newFixedLengthResponse(
+							NanoHTTPD.Response.Status.BAD_REQUEST, 
+							"application/json", 
+							new JSONObject().put("error", "No zip code provided. GeoIP does not work for private IPs for obvious reasons").toString()
+					);
+				}
 				try {
 					ipInfo = Request.geoIP(ip);
 					if(ipInfo != null) {
 						zip = ipInfo.getPostalCode();
 					}
-					if(requireZip && (zip == null || zip.isEmpty())) {
+					if(zip == null || zip.isEmpty()) {
 						return NanoHTTPD.newFixedLengthResponse(
 								NanoHTTPD.Response.Status.BAD_REQUEST, 
 								"application/json", 
@@ -74,17 +98,15 @@ public abstract class Handler extends GeneralHandler {
 				}
 				catch(Exception e) {
 					e.printStackTrace();
-					if(requireZip) {
-						return NanoHTTPD.newFixedLengthResponse(
-								NanoHTTPD.Response.Status.BAD_REQUEST, 
-								"application/json", 
-								new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
-						);
-					}
+					return NanoHTTPD.newFixedLengthResponse(
+							NanoHTTPD.Response.Status.BAD_REQUEST, 
+							"application/json", 
+							new JSONObject().put("error", "No zip code provided and GeoIP failed to provide a location").toString()
+					);
 				}
 			}
 			String query = params.containsKey("q") ? String.join("+", params.get("q")) : "toilet+paper";
-			JSONArray results = REQUEST.getStatus(zip, query, params.containsKey("expand") && params.get("expand").contains("true"));
+			JSONArray results = REQUEST.getStatus(zip, query, params.containsKey("expand") && params.get("expand").get(0).equalsIgnoreCase("true"));
 			JSONObject out = new JSONObject();
 			if(ipInfo != null) {
 				out.put("geoip", new JSONObject().put("zip_code", ipInfo.getPostalCode())

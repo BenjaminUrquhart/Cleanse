@@ -15,6 +15,7 @@ public class Server extends RouterNanoHTTPD {
 	
 	private final Map<String, Class<? extends DefaultHandler>> handlers;
 	private static Server INSTANCE;
+	private int port;
 	
 	public static Server getInstance() {
 		if(INSTANCE == null) {
@@ -33,9 +34,14 @@ public class Server extends RouterNanoHTTPD {
 	private Server(int port) throws IOException {
 		super(port);
 		this.handlers = new HashMap<>();
+		this.port = port;
 		
 		this.addMappings();
 		start(RouterNanoHTTPD.SOCKET_READ_TIMEOUT, false);
+	}
+	
+	public int getPort() {
+		return port;
 	}
 	
 	public Map<String, Class<? extends DefaultHandler>> getEndpoints() {

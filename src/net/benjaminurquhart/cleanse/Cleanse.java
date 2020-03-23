@@ -1,5 +1,7 @@
 package net.benjaminurquhart.cleanse;
 
+import net.benjaminurquhart.cleanse.storeapi.Requester;
+
 public class Cleanse {
 	
 	private static final boolean DEBUG;
@@ -15,7 +17,10 @@ public class Cleanse {
 	}
 
 	public static void main(String[] args) throws Exception {
-		Server.getInstance();
+		Server server = Server.getInstance();
+		for(String endpoint : server.getEndpoints().keySet()) {
+			Requester.request("http://localhost:"+server.getPort()+endpoint);
+		}
 	}
 	
 	public static void debug(Object obj) {

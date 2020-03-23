@@ -123,9 +123,10 @@ public class TargetRequest extends Request {
 					.getJSONObject("items")
 					.getJSONArray("Item");
 			JSONObject status, item, price, tmp, store;
-			JSONArray statuses = new JSONArray(), availability, tmp2;
+			JSONArray statuses = new JSONArray(), availability, images, tmp2;
 			String tcin;
 			for(int i = 0, size = results.length(); i < size; i++) {
+				images = new JSONArray();
 				status = new JSONObject();
 				availability = new JSONArray();
 				item = results.getJSONObject(i);
@@ -143,6 +144,14 @@ public class TargetRequest extends Request {
 														.put("price_max", price.optDouble("current_retail", -1))
 														.put("formatted", price.optString("formatted_current_price", "N/A")));
 				}
+				if(item.has("images")) {
+					tmp = item.getJSONArray("images").getJSONObject(0);
+					tmp2 = tmp.getJSONArray("content_labels");
+					for(int j = 0, length = tmp2.length(); j < length; j++) {
+						images.put(tmp.getString("base_url")+tmp2.getJSONObject(j).getString("image_url"));
+					}
+				}
+				status.put("images", images);
 				if(expand) {
 					for(int id : nearby) {
 						tmp = this.getProductStatus(tcin, id);

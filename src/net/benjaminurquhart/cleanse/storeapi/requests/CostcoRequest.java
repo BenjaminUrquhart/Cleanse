@@ -59,13 +59,23 @@ public class CostcoRequest extends Request {
 					   							  .flatMap(List::stream)
 					   							  .map(element -> new JSONObject().put("url", element.absUrl("href")).put("title", element.text()))
 					   							  .collect(Collectors.toList());
+			List<String> images = results.getElementsByAttributeValue("class", "img-responsive")
+										 .stream()
+										 .map(element ->  element.attr(element.hasAttr("src") ? "src" : "data-src"))
+										 .collect(Collectors.toList());
+			List<String> prices = results.getElementsByAttributeValue("class", "price")
+										 .stream()
+										 .map(element -> element.text())
+										 .collect(Collectors.toList());
 			
 			Matcher partNumber, information, delivery;
 			int index = 0;
 			JSONObject info = null;
 			for(String comment : comments) {
 				if(comment.equals("<!-- BEGIN - CostcoGLOBALSAS/Widgets/ProductTile/ProductTileSearchResults.jspf -->")) {
-					info = productInfo.get(index++);
+					info = productInfo.get(index);
+					info.put("price", new JSONObject().put("formatted", prices.get(index)));
+					info.put("images", new JSONArray().put(images.get(index++)));
 					continue;
 				}
 				else if(comment.equals("<!-- END - CostcoGLOBALSAS/Widgets/ProductTile/ProductTileSearchResults.jspf -->")) {
