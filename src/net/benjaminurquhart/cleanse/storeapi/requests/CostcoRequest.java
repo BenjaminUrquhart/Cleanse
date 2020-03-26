@@ -53,29 +53,31 @@ public class CostcoRequest extends Request {
 			Element results = elements.get(0);
 			//System.err.println(results);
 			List<String> comments = this.getComments(results);
-			List<JSONObject> productInfo = results.getElementsByAttributeValue("class", "description")
-					   							  .stream()
-					   							  .map(Element::children)
-					   							  .flatMap(List::stream)
-					   							  .map(element -> new JSONObject().put("url", element.absUrl("href")).put("title", element.text()))
-					   							  .collect(Collectors.toList());
-			List<String> images = results.getElementsByAttributeValue("class", "img-responsive")
-										 .stream()
-										 .map(element ->  element.attr(element.hasAttr("src") ? "src" : "data-src"))
-										 .collect(Collectors.toList());
-			List<String> prices = results.getElementsByAttributeValue("class", "price")
-										 .stream()
-										 .map(element -> element.text())
-										 .collect(Collectors.toList());
+			List<JSONObject> products = results.getElementsByAttributeValueMatching("class", "col\\-xs\\-\\d+ col\\-md\\-\\d+ col\\-lg\\-\\d+ col\\-xl\\-\\d+ product")
+											   .stream()
+											   .map(element -> {
+												   JSONObject productInfo = element.getElementsByAttributeValue("class", "description")
+														   						   .stream()
+														   						   .map(Element::children)
+														   						   .flatMap(List::stream)
+														   						   .map(e -> new JSONObject().put("title", e.text()).put("url", e.attr("href")))
+														   						   .findFirst()
+														   						   .orElse(new JSONObject());
+												   JSONObject price = new JSONObject();
+												   JSONArray images = new JSONArray();
+												   element.getElementsByAttributeValue("class", "img-responsive").forEach(e -> images.put(e.attr(e.hasAttr("src") ? "src" : "data-src")));
+												   price.put("formatted", element.getElementsByAttributeValue("class", "price").stream().map(Element::text).findFirst().orElse("Unknown"));
+												   
+												   return productInfo.put("price", price).put("images", images);
+											   }).collect(Collectors.toList());
+											   
 			
 			Matcher partNumber, information, delivery;
 			int index = 0;
 			JSONObject info = null;
 			for(String comment : comments) {
 				if(comment.equals("<!-- BEGIN - CostcoGLOBALSAS/Widgets/ProductTile/ProductTileSearchResults.jspf -->")) {
-					info = productInfo.get(index);
-					info.put("price", new JSONObject().put("formatted", prices.get(index)));
-					info.put("images", new JSONArray().put(images.get(index++)));
+					info = products.get(index++);
 					continue;
 				}
 				else if(comment.equals("<!-- END - CostcoGLOBALSAS/Widgets/ProductTile/ProductTileSearchResults.jspf -->")) {

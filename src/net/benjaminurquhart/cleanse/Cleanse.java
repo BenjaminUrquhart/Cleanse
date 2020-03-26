@@ -12,7 +12,7 @@ public class Cleanse {
 			DEBUG = Boolean.parseBoolean(pref);
 		}
 		else {
-			DEBUG = false;
+			DEBUG = true;
 		}
 	}
 

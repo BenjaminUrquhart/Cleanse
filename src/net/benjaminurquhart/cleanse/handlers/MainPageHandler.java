@@ -196,7 +196,17 @@ public class MainPageHandler extends GeneralHandler {
 																String.format("(Stock: %d)", store.getInt("on_hand"))
 														));
 													})
-												)
+												),
+												p(join("Shipping:",
+														json.has("shipping") && !json.getJSONObject("shipping").getJSONArray("shipping_types").isEmpty() ? 
+																json.getJSONObject("shipping")
+																	.getJSONArray("shipping_types")
+																	.toList()
+																	.stream()
+																	.map(String::valueOf)
+																	.collect(Collectors.joining(", ")) :
+																"N/A"
+												))
 											))
 										);
 									})

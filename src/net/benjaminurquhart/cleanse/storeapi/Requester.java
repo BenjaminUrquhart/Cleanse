@@ -107,7 +107,10 @@ public class Requester {
 				result = response.body().string();
 				if(response.code() >= 300) {
 					System.err.println("[WARN] Got status code " + response.code() + " from url " + url);
-					//System.err.println("[WARN] Data: " + result);
+					// No need for excessive 400s
+					if(response.code() == 400) {
+						CACHE.set(url, result);
+					}
 				}
 				else {
 					CACHE.set(url, result);
